@@ -19,11 +19,11 @@ const validateUserId = async (id, res) => {
     return userById
 }
 
-const validateUserPayload = async (full_name, email, res, excludeUserId = null) => {
+const validateUserPayloadInsert = async (full_name, email, res, excludeUserId = null) => {
     if(!full_name || !email){
         return res.status(400).json({
             status: 'failed', 
-            message: 'Please provide full_name and email'
+            message: 'Please provide full name and email'
         })
     }
     const existingUser = await User.findOne({where: { email }})
@@ -36,5 +36,19 @@ const validateUserPayload = async (full_name, email, res, excludeUserId = null) 
     return true
 }
 
-module.exports = { validateUserId, validateUserPayload }
+const validateUserPayloadUpdate = async (email, res, excludeUserId = null) => {
+
+    if (!email) return true
+    
+    const existingUser = await User.findOne({where: { email }})
+    if( existingUser && existingUser.id !== excludeUserId ){
+        return res.status(400).json({
+            status: "failed",
+            message: "This email is already registered by a another user, please enter a different email"
+        })
+    }
+    return true
+}
+
+module.exports = { validateUserId, validateUserPayloadInsert, validateUserPayloadUpdate }
     

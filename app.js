@@ -6,7 +6,7 @@ const app = express()
 app.use(express.json())
 //app.use(express.urlencoded({ extended: true }));
 
-app.use('/users', usersRoute)
+app.use('/api/v1/users', usersRoute)
 
 app.use((req, res, next) => {
     res.status(404).json({

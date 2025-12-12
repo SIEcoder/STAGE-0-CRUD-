@@ -1,12 +1,25 @@
 const { User } = require('../db/models')
-const { validateUserId, validateUserPayload } = require('../utils/validateUser')
-const express = require('express')
+const { validateUserId, validateUserPayloadInsert, validateUserPayloadUpdate } = require('../utils/validateUser')
 
 const getUsers = async (req, res) => {
-    const users = await User.findAll()
-    res.status(200).json({
+    const { page, limit  } = req.query
+
+    const pageNumber = Math.max(Number(page) || 1, 1)
+    const pageLimit = Math.max(Number(limit) || 2, 1)
+
+    const offset = (pageNumber - 1) * pageLimit
+
+    const result = await User.findAndCountAll({
+        limit: pageLimit, 
+        offset: offset
+    })
+    return res.status(200).json({
         status: 'successful', 
-        data: users
+        totalRecords: result.count,
+        totalPages: Math.ceil(result.count / pageLimit),
+        data: result.rows, 
+        page: pageNumber, 
+        limit: pageLimit
     })
 }
 const getUserById = async (req, res) => {
@@ -20,7 +33,7 @@ const getUserById = async (req, res) => {
 }
 const insertUser = async (req, res) => {
     const { full_name, email, stage } = req.body
-    const validatedPayload = await validateUserPayload(full_name, email, res)
+    const validatedPayload = await validateUserPayloadInsert(full_name, email, res)
     if(!validatedPayload) return
     const newUser = await User.create({
         full_name: full_name, 
@@ -39,12 +52,18 @@ const updateUser = async (req, res) => {
     const userToUpdate = await validateUserId(id, res)
     if(!userToUpdate) return
 
-    const validatedPayload = await validateUserPayload(full_name, email, res, userToUpdate.id)
+    const validatedPayload = await validateUserPayloadUpdate(email, res, userToUpdate.id)
     if(!validatedPayload) return
 
-    userToUpdate.full_name = full_name
-    userToUpdate.email = email
-    userToUpdate.stage = stage
+    if(full_name){
+        userToUpdate.full_name = full_name
+    }
+    if(email){
+        userToUpdate.email = email
+    }
+    if(stage){
+        userToUpdate.stage = stage
+    }
 
     await userToUpdate.save()
     res.status(200).json({
